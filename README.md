@@ -53,15 +53,43 @@ Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`) y un 
 
 Variables de entorno requeridas en Vercel (Project Settings -> Environment Variables):
 
-- `API_KEY_MAILERSEND`
 - `FROM_EMAIL`
 - `TO_EMAIL`
+- `SERVER_SMTP`
+- `PORT_SMTP`
+- `USER_SMTP`
+- `PASS_SMTP`
 
 Variable opcional (recomendado):
 
 - `CRON_SECRET`
 
 Si defines `CRON_SECRET`, el endpoint validará `?secret=...`.
+
+## Envío por correo en local (sin Vercel)
+
+1. Crea un archivo `.env` (en la raíz del proyecto) con:
+
+```env
+FROM_EMAIL=...
+TO_EMAIL=...
+SERVER_SMTP=smtp.mailersend.net
+PORT_SMTP=587
+USER_SMTP=...
+PASS_SMTP=...
+```
+
+2. Ejecuta:
+
+```bash
+python3 local_send_report.py
+```
+
+Opcional:
+
+```bash
+python3 local_send_report.py "https://www.claro.com.pe/sitemap.xml" "_test,-test,_1,_bkp,_2"
+```
 
 ## Endpoints
 

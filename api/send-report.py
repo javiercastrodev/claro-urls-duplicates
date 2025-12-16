@@ -1,15 +1,13 @@
-import base64
 import json
+import html as html_lib
 import os
+import smtplib
 import time
-import urllib.error
-import urllib.request
+from email.message import EmailMessage
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 from server import DEFAULT_SITEMAP_URL, DEFAULT_SUFFIXES, fetch_all_urls_from_sitemap, find_urls_to_delete
-
-MAILERSEND_API_URL = "https://api.mailersend.com/v1/email"
 
 
 def _get_env(name: str) -> str:
@@ -19,53 +17,68 @@ def _get_env(name: str) -> str:
     return value
 
 
-def _send_mailersend_email(
-    api_key: str,
+def _send_email_smtp(
+    smtp_host: str,
+    smtp_port: int,
+    smtp_user: str,
+    smtp_pass: str,
     from_email: str,
     to_email: str,
     subject: str,
     text: str,
-    html: str,
-    attachments: list[dict] | None = None,
-    timeout_seconds: int = 30,
+    html_body: str,
 ) -> dict:
-    payload: dict = {
-        "from": {"email": from_email},
-        "to": [{"email": to_email}],
-        "subject": subject,
-        "text": text,
-        "html": html,
-    }
-    if attachments:
-        payload["attachments"] = attachments
+    def _build_message() -> EmailMessage:
+        msg = EmailMessage()
+        msg["From"] = from_email
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.set_content(text)
+        msg.add_alternative(html_body, subtype="html")
+        return msg
 
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    msg = _build_message()
 
-    req = urllib.request.Request(
-        MAILERSEND_API_URL,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-            "Authorization": f"Bearer {api_key}",
-        },
-        method="POST",
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
+        server.ehlo()
+        if smtp_port == 587:
+            server.starttls()
+            server.ehlo()
+        try:
+            server.login(smtp_user, smtp_pass)
+        except smtplib.SMTPAuthenticationError as e:
+            raise RuntimeError(
+                "SMTP authentication failed. Verify USER_SMTP and PASS_SMTP from MailerSend SMTP user credentials."
+            ) from e
+
+        server.send_message(msg)
+
+    return {"status": "sent"}
+
+
+def _render_urls_table_html(urls_to_delete: list[dict]) -> str:
+    rows = []
+    for item in urls_to_delete:
+        url = html_lib.escape(str(item.get("url", "")))
+        lastmod = item.get("ultima_actualizacion", None)
+        lastmod_str = "" if lastmod is None else html_lib.escape(str(lastmod))
+        rows.append(
+            f"<tr><td style=\"padding:8px;border:1px solid #ddd;\"><a href=\"{url}\">{url}</a></td><td style=\"padding:8px;border:1px solid #ddd;white-space:nowrap;\">{lastmod_str}</td></tr>"
+        )
+
+    body_rows = "".join(rows) if rows else "<tr><td colspan=\"2\" style=\"padding:8px;border:1px solid #ddd;\">Sin resultados</td></tr>"
+    return (
+        "<html><body>"
+        "<h3>URLs a eliminar</h3>"
+        "<table style=\"border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;\">"
+        "<thead><tr>"
+        "<th style=\"text-align:left;padding:8px;border:1px solid #ddd;background:#f5f5f5;\">URL</th>"
+        "<th style=\"text-align:left;padding:8px;border:1px solid #ddd;background:#f5f5f5;\">Ultima actualización</th>"
+        "</tr></thead>"
+        f"<tbody>{body_rows}</tbody>"
+        "</table>"
+        "</body></html>"
     )
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
-            raw = resp.read()
-            if not raw:
-                return {"status": "sent", "http_status": resp.status}
-            try:
-                return json.loads(raw.decode("utf-8"))
-            except Exception:
-                return {"status": "sent", "http_status": resp.status, "raw": raw.decode("utf-8", errors="replace")}
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"MailerSend HTTPError {e.code}: {body}")
-    except urllib.error.URLError as e:
-        raise RuntimeError(f"MailerSend URLError: {e}")
 
 
 class handler(BaseHTTPRequestHandler):
@@ -96,9 +109,13 @@ class handler(BaseHTTPRequestHandler):
             suffixes = DEFAULT_SUFFIXES
 
         try:
-            api_key = _get_env("API_KEY_MAILERSEND")
             from_email = _get_env("FROM_EMAIL")
             to_email = _get_env("TO_EMAIL")
+
+            smtp_host = _get_env("SERVER_SMTP")
+            smtp_port = int(_get_env("PORT_SMTP"))
+            smtp_user = _get_env("USER_SMTP")
+            smtp_pass = _get_env("PASS_SMTP")
 
             started = time.time()
             urls_by_loc = fetch_all_urls_from_sitemap(sitemap_url)
@@ -118,25 +135,19 @@ class handler(BaseHTTPRequestHandler):
 
             subject = f"Claro sitemap - URLs a eliminar ({len(to_delete)})"
             text = report_json
-            html = f"<pre>{report_json}</pre>"
 
-            attachment_bytes = report_json.encode("utf-8")
-            attachments = [
-                {
-                    "content": base64.b64encode(attachment_bytes).decode("ascii"),
-                    "filename": "urls_a_eliminar.json",
-                    "type": "application/json",
-                }
-            ]
+            html_body = _render_urls_table_html(to_delete)
 
-            mailersend_resp = _send_mailersend_email(
-                api_key=api_key,
+            mailersend_resp = _send_email_smtp(
+                smtp_host=smtp_host,
+                smtp_port=smtp_port,
+                smtp_user=smtp_user,
+                smtp_pass=smtp_pass,
                 from_email=from_email,
                 to_email=to_email,
                 subject=subject,
                 text=text,
-                html=html,
-                attachments=attachments,
+                html_body=html_body,
             )
 
             self._send_json({"status": "ok", "report": {"count": len(to_delete)}, "mailersend": mailersend_resp})
