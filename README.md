@@ -64,7 +64,7 @@ Variable opcional (recomendado):
 
 - `CRON_SECRET`
 
-Si defines `CRON_SECRET`, el endpoint validará `?secret=...` o el header `X-Cron-Secret`.
+Si defines `CRON_SECRET`, el endpoint validará `?secret=...` (y también acepta el header `X-Cron-Secret`).
 
 ### Scheduler (GitHub Actions)
 

@@ -21,6 +21,4 @@ jobs:
             exit 1
           fi
 
-          curl -sS -f \
-            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.SEND_REPORT_URL }}" | cat
+          curl -sS -f "${{ secrets.SEND_REPORT_URL }}?secret=${{ secrets.CRON_SECRET }}" | cat
