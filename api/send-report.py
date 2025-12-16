@@ -97,6 +97,8 @@ class handler(BaseHTTPRequestHandler):
         cron_secret = os.environ.get("CRON_SECRET", "").strip()
         if cron_secret:
             provided = (qs.get("secret", [""])[0] or "").strip()
+            if not provided:
+                provided = (self.headers.get("X-Cron-Secret") or "").strip()
             if provided != cron_secret:
                 self._send_json({"error": "unauthorized"}, status_code=401)
                 return
