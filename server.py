@@ -111,8 +111,12 @@ def find_urls_to_delete(
         url_original = url.strip()
         if not url_original:
             continue
-        url_sin_slash = url_original.rstrip("/")
-        if url_sin_slash.endswith(suffixes):
+        parsed = urlparse(url_original)
+        path = parsed.path or ""
+        segments = [seg for seg in path.strip("/").split("/") if seg]
+
+        matches_suffix = any(seg.endswith(suffixes) for seg in segments)
+        if matches_suffix:
             out.append({"url": url_original, "ultima_actualizacion": lastmod})
     return sorted(out, key=lambda x: x["url"])
 
