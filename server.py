@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -10,6 +11,32 @@ from urllib.parse import parse_qs, urlparse
 DEFAULT_SITEMAP_URL = "https://www.claro.com.pe/sitemap.xml"
 DEFAULT_SUFFIXES = ("_test", "-test", "_1", "_bkp", "_2")
 DEFAULT_PORT = 8000
+
+
+def _load_env_file(path: str) -> None:
+    if not os.path.exists(path):
+        return
+    with open(path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+def _parse_suffixes_csv(value: str) -> tuple[str, ...]:
+    raw = (value or "").strip()
+    if len(raw) >= 2 and ((raw[0] == raw[-1] == "'") or (raw[0] == raw[-1] == '"')):
+        raw = raw[1:-1].strip()
+    return tuple([s.strip() for s in raw.split(",") if s.strip()])
 
 
 def _xml_local_name(tag: str) -> str:
@@ -154,9 +181,10 @@ class Handler(BaseHTTPRequestHandler):
         sitemap_url = qs.get("sitemap", [DEFAULT_SITEMAP_URL])[0]
         suffixes_raw = qs.get("suffixes", [""])[0].strip()
         if suffixes_raw:
-            suffixes = tuple([s.strip() for s in suffixes_raw.split(",") if s.strip()])
+            suffixes = _parse_suffixes_csv(suffixes_raw)
         else:
-            suffixes = DEFAULT_SUFFIXES
+            suffixes_from_env = os.environ.get("SUFFIXES", "")
+            suffixes = _parse_suffixes_csv(suffixes_from_env) or DEFAULT_SUFFIXES
 
         started = time.time()
         try:
@@ -200,6 +228,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    _load_env_file(".env")
+
     port = DEFAULT_PORT
     if len(sys.argv) >= 2:
         try:

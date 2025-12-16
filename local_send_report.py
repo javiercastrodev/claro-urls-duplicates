@@ -35,6 +35,13 @@ def _get_env(name: str) -> str:
     return value
 
 
+def _parse_suffixes_csv(value: str) -> tuple[str, ...]:
+    raw = (value or "").strip()
+    if len(raw) >= 2 and ((raw[0] == raw[-1] == "'") or (raw[0] == raw[-1] == '"')):
+        raw = raw[1:-1].strip()
+    return tuple([s.strip() for s in raw.split(",") if s.strip()])
+
+
 def _send_email_smtp(
     smtp_host: str,
     smtp_port: int,
@@ -102,14 +109,15 @@ def main() -> None:
     _load_env_file(".env")
 
     sitemap_url = DEFAULT_SITEMAP_URL
-    suffixes = DEFAULT_SUFFIXES
+    suffixes_from_env = os.environ.get("SUFFIXES", "")
+    suffixes = _parse_suffixes_csv(suffixes_from_env) or DEFAULT_SUFFIXES
 
     # CLI opcional:
     # python3 local_send_report.py [sitemap_url] [suffixes_csv]
     if len(sys.argv) >= 2 and sys.argv[1].strip():
         sitemap_url = sys.argv[1].strip()
     if len(sys.argv) >= 3 and sys.argv[2].strip():
-        suffixes = tuple([s.strip() for s in sys.argv[2].split(",") if s.strip()])
+        suffixes = _parse_suffixes_csv(sys.argv[2])
 
     from_email = _get_env("FROM_EMAIL")
     to_email = _get_env("TO_EMAIL")

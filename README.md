@@ -66,6 +66,12 @@ Variable opcional (recomendado):
 
 Si defines `CRON_SECRET`, el endpoint validará `?secret=...` (y también acepta el header `X-Cron-Secret`).
 
+Variable opcional:
+
+- `SUFFIXES`
+
+Lista separada por comas con los sufijos a detectar (por ejemplo `_test,-test,_1,_bkp,_2`). Si NO envías el parámetro `suffixes` en la URL (o por CLI en local), se tomará este valor. Si `SUFFIXES` no está definido, se usan los sufijos por defecto del proyecto.
+
 ### Scheduler (GitHub Actions)
 
 El workflow vive en `.github/workflows/send-report.yml`.
@@ -123,7 +129,7 @@ curl "http://127.0.0.1:8000/urls-a-eliminar"
 Parámetros opcionales:
 
 - `sitemap`: URL del sitemap raíz (por defecto `https://www.claro.com.pe/sitemap.xml`)
-- `suffixes`: lista separada por comas (por defecto `_test,-test,_1`)
+- `suffixes`: lista separada por comas (por defecto `SUFFIXES` si está definido; si no, los defaults del proyecto)
 
 Respuesta incluye:
 

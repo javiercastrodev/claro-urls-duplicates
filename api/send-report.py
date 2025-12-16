@@ -24,6 +24,13 @@ def _normalize_secret(value: str) -> str:
     return v
 
 
+def _parse_suffixes_csv(value: str) -> tuple[str, ...]:
+    raw = (value or "").strip()
+    if len(raw) >= 2 and ((raw[0] == raw[-1] == "'") or (raw[0] == raw[-1] == '"')):
+        raw = raw[1:-1].strip()
+    return tuple([s.strip() for s in raw.split(",") if s.strip()])
+
+
 def _send_email_smtp(
     smtp_host: str,
     smtp_port: int,
@@ -67,11 +74,7 @@ def _render_urls_table_html(urls_to_delete: list[dict]) -> str:
     rows = []
     for item in urls_to_delete:
         url = html_lib.escape(str(item.get("url", "")))
-        lastmod = item.get("ultima_actualizacion", None)
-        lastmod_str = "" if lastmod is None else html_lib.escape(str(lastmod))
-        rows.append(
-            f"<tr><td style=\"padding:8px;border:1px solid #ddd;\"><a href=\"{url}\">{url}</a></td><td style=\"padding:8px;border:1px solid #ddd;white-space:nowrap;\">{lastmod_str}</td></tr>"
-        )
+        rows.append(f"<tr><td style=\"padding:8px;border:1px solid #ddd;\"><a href=\"{url}\">{url}</a></td></tr>")
 
     body_rows = "".join(rows) if rows else "<tr><td colspan=\"2\" style=\"padding:8px;border:1px solid #ddd;\">Sin resultados</td></tr>"
     return (
@@ -80,7 +83,6 @@ def _render_urls_table_html(urls_to_delete: list[dict]) -> str:
         "<table style=\"border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:14px;\">"
         "<thead><tr>"
         "<th style=\"text-align:left;padding:8px;border:1px solid #ddd;background:#f5f5f5;\">URL</th>"
-        "<th style=\"text-align:left;padding:8px;border:1px solid #ddd;background:#f5f5f5;\">Ultima actualización</th>"
         "</tr></thead>"
         f"<tbody>{body_rows}</tbody>"
         "</table>"
@@ -113,9 +115,10 @@ class handler(BaseHTTPRequestHandler):
         sitemap_url = qs.get("sitemap", [DEFAULT_SITEMAP_URL])[0]
         suffixes_raw = qs.get("suffixes", [""])[0].strip()
         if suffixes_raw:
-            suffixes = tuple([s.strip() for s in suffixes_raw.split(",") if s.strip()])
+            suffixes = _parse_suffixes_csv(suffixes_raw)
         else:
-            suffixes = DEFAULT_SUFFIXES
+            suffixes_from_env = os.environ.get("SUFFIXES", "")
+            suffixes = _parse_suffixes_csv(suffixes_from_env) or DEFAULT_SUFFIXES
 
         try:
             from_email = _get_env("FROM_EMAIL")

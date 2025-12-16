@@ -1,8 +1,16 @@
 import json
+import os
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 from server import DEFAULT_SITEMAP_URL, DEFAULT_SUFFIXES, fetch_all_urls_from_sitemap, find_urls_to_delete
+
+
+def _parse_suffixes_csv(value: str) -> tuple[str, ...]:
+    raw = (value or "").strip()
+    if len(raw) >= 2 and ((raw[0] == raw[-1] == "'") or (raw[0] == raw[-1] == '"')):
+        raw = raw[1:-1].strip()
+    return tuple([s.strip() for s in raw.split(",") if s.strip()])
 
 
 class handler(BaseHTTPRequestHandler):
@@ -13,9 +21,10 @@ class handler(BaseHTTPRequestHandler):
         sitemap_url = qs.get("sitemap", [DEFAULT_SITEMAP_URL])[0]
         suffixes_raw = qs.get("suffixes", [""])[0].strip()
         if suffixes_raw:
-            suffixes = tuple([s.strip() for s in suffixes_raw.split(",") if s.strip()])
+            suffixes = _parse_suffixes_csv(suffixes_raw)
         else:
-            suffixes = DEFAULT_SUFFIXES
+            suffixes_from_env = os.environ.get("SUFFIXES", "")
+            suffixes = _parse_suffixes_csv(suffixes_from_env) or DEFAULT_SUFFIXES
 
         try:
             urls_by_loc = fetch_all_urls_from_sitemap(sitemap_url)
