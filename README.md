@@ -47,9 +47,9 @@ Una vez desplegado, podrás consultar:
 - `https://TU-PROYECTO.vercel.app/health`
 - `https://TU-PROYECTO.vercel.app/urls-a-eliminar`
 
-## Envío automático por correo (Vercel Cron + MailerSend)
+## Envío automático por correo (GitHub Actions + MailerSend)
 
-Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`) y un cron en `vercel.json` que ejecuta el envío automáticamente cada 3 días.
+Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`). Para ejecutarlo automáticamente cada 3 días se usa un workflow programado de GitHub Actions.
 
 Variables de entorno requeridas en Vercel (Project Settings -> Environment Variables):
 
@@ -65,6 +65,17 @@ Variable opcional (recomendado):
 - `CRON_SECRET`
 
 Si defines `CRON_SECRET`, el endpoint validará `?secret=...`.
+
+### Scheduler (GitHub Actions)
+
+El workflow vive en `.github/workflows/send-report.yml`.
+
+Configura estos secrets en GitHub (Settings -> Secrets and variables -> Actions):
+
+- `SEND_REPORT_URL`: por ejemplo `https://TU-PROYECTO.vercel.app/send-report`
+- `CRON_SECRET`: el mismo valor que configuraste como variable de entorno en Vercel
+
+Nota: el cron del workflow está en UTC. El ejemplo está configurado para correr a las 09:00 hora Lima (14:00 UTC) cada 3 días.
 
 ## Envío por correo en local (sin Vercel)
 

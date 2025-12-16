@@ -1,0 +1,24 @@
+name: Send Report
+
+on:
+  schedule:
+    - cron: "0 14 */3 * *"
+  workflow_dispatch: {}
+
+jobs:
+  send_report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call send-report endpoint
+        run: |
+          if [ -z "${{ secrets.SEND_REPORT_URL }}" ]; then
+            echo "Missing GitHub secret: SEND_REPORT_URL" >&2
+            exit 1
+          fi
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "Missing GitHub secret: CRON_SECRET" >&2
+            exit 1
+          fi
+
+          curl -sS -f "${{ secrets.SEND_REPORT_URL }}?secret=${{ secrets.CRON_SECRET }}" | cat

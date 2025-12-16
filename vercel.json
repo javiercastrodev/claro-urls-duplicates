@@ -1,11 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/send-report.py",
-      "schedule": "0 9 */3 * *"
-    }
-  ],
   "rewrites": [
     { "source": "/health", "destination": "/api/health.py" },
     { "source": "/urls-a-eliminar", "destination": "/api/urls-a-eliminar.py" },
