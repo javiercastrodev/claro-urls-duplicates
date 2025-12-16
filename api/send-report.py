@@ -17,6 +17,13 @@ def _get_env(name: str) -> str:
     return value
 
 
+def _normalize_secret(value: str) -> str:
+    v = (value or "").strip()
+    if len(v) >= 2 and ((v[0] == v[-1] == "'") or (v[0] == v[-1] == '"')):
+        v = v[1:-1].strip()
+    return v
+
+
 def _send_email_smtp(
     smtp_host: str,
     smtp_port: int,
@@ -94,11 +101,11 @@ class handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
 
-        cron_secret = os.environ.get("CRON_SECRET", "").strip()
+        cron_secret = _normalize_secret(os.environ.get("CRON_SECRET", ""))
         if cron_secret:
-            provided = (qs.get("secret", [""])[0] or "").strip()
+            provided = _normalize_secret(qs.get("secret", [""])[0] or "")
             if not provided:
-                provided = (self.headers.get("X-Cron-Secret") or "").strip()
+                provided = _normalize_secret(self.headers.get("X-Cron-Secret") or "")
             if provided != cron_secret:
                 self._send_json({"error": "unauthorized"}, status_code=401)
                 return
