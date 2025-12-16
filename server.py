@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 DEFAULT_SITEMAP_URL = "https://www.claro.com.pe/sitemap.xml"
-DEFAULT_SUFFIXES = ("_test", "-test", "_1")
+DEFAULT_SUFFIXES = ("_test", "-test", "_1", "_bkp", "_2")
 DEFAULT_PORT = 8000
 
 

@@ -47,6 +47,22 @@ Una vez desplegado, podrás consultar:
 - `https://TU-PROYECTO.vercel.app/health`
 - `https://TU-PROYECTO.vercel.app/urls-a-eliminar`
 
+## Envío automático por correo (Vercel Cron + MailerSend)
+
+Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`) y un cron en `vercel.json` que ejecuta el envío automáticamente cada 3 días.
+
+Variables de entorno requeridas en Vercel (Project Settings -> Environment Variables):
+
+- `API_KEY_MAILERSEND`
+- `FROM_EMAIL`
+- `TO_EMAIL`
+
+Variable opcional (recomendado):
+
+- `CRON_SECRET`
+
+Si defines `CRON_SECRET`, el endpoint validará `?secret=...`.
+
 ## Endpoints
 
 - `GET /health`
