@@ -81,7 +81,7 @@ Configura estos secrets en GitHub (Settings -> Secrets and variables -> Actions)
 - `SEND_REPORT_URL`: por ejemplo `https://TU-PROYECTO.vercel.app/send-report`
 - `CRON_SECRET`: el mismo valor que configuraste como variable de entorno en Vercel
 
-Nota: el cron del workflow está en UTC. El ejemplo está configurado para correr a las 09:00 hora Lima (14:00 UTC) cada 3 días.
+Nota: el cron del workflow está en UTC. El ejemplo está configurado para correr a las 09:00 hora Lima (14:00 UTC) cada 5 días.
 
 ## Envío por correo en local (sin Vercel)
 
