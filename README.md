@@ -1,6 +1,6 @@
 # claro-sitemaps
 
-Servicio en Python para descargar y procesar el sitemap de `https://www.claro.com.pe/sitemap.xml` y devolver un JSON con las URLs que se consideran “duplicadas” para eliminación.
+Servicio en Python para descargar y procesar el sitemap de `https://www.claro.com.pe/sitemap.xml` y devolver un JSON con las URLs que se consideran “duplicadas” para eliminación..
 
 Actualmente se consideran duplicadas las URLs que terminan en alguno de estos sufijos (ignorando el `/` final):
 
