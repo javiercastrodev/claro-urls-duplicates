@@ -47,9 +47,9 @@ Una vez desplegado, podrás consultar:
 - `https://TU-PROYECTO.vercel.app/health`
 - `https://TU-PROYECTO.vercel.app/urls-a-eliminar`
 
-## Envío automático por correo (GitHub Actions + MailerSend)
+## Envío automático por correo (cron-job.org + MailerSend)
 
-Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`). Para ejecutarlo automáticamente cada 3 días se usa un workflow programado de GitHub Actions.
+Se incluyó el endpoint `GET /send-report` (mapea a `/api/send-report.py`). Para ejecutarlo automáticamente cada 5 días se usa un cron externo en [cron-job.org](https://cron-job.org).
 
 Variables de entorno requeridas en Vercel (Project Settings -> Environment Variables):
 
@@ -72,16 +72,24 @@ Variable opcional:
 
 Lista separada por comas con los sufijos a detectar (por ejemplo `_test,-test,_1,_bkp,_2`). Si NO envías el parámetro `suffixes` en la URL (o por CLI en local), se tomará este valor. Si `SUFFIXES` no está definido, se usan los sufijos por defecto del proyecto.
 
-### Scheduler (GitHub Actions)
+### Scheduler (cron-job.org)
 
-El workflow vive en `.github/workflows/send-report.yml`.
+En [cron-job.org](https://cron-job.org), crea un cron job con:
 
-Configura estos secrets en GitHub (Settings -> Secrets and variables -> Actions):
+- **URL**: `https://TU-PROYECTO.vercel.app/send-report?secret=TU_CRON_SECRET` (el mismo valor que configuraste como `CRON_SECRET` en Vercel)
+- **Método**: GET
+- **Schedule**: `0 14 */5 * *` (UTC) — corre a las 09:00 hora Lima cada 5 días
+
+Nota: cada ejecución válida dispara un envío real de correo, no hay modo de prueba/dry-run.
+
+### Scheduler (GitHub Actions, respaldo manual)
+
+El workflow vive en `.github/workflows/send-report.yml` y expone solo `workflow_dispatch` (disparo manual desde la pestaña Actions). Ya no corre por `schedule`: GitHub deshabilita automáticamente los workflows programados en repos públicos si no hay actividad en el repositorio (push/release/merge) durante 60 días, por eso la programación se movió fuera de GitHub Actions.
+
+Si igual querés dispararlo manualmente desde GitHub, configura estos secrets (Settings -> Secrets and variables -> Actions):
 
 - `SEND_REPORT_URL`: por ejemplo `https://TU-PROYECTO.vercel.app/send-report`
 - `CRON_SECRET`: el mismo valor que configuraste como variable de entorno en Vercel
-
-Nota: el cron del workflow está en UTC. El ejemplo está configurado para correr a las 09:00 hora Lima (14:00 UTC) cada 5 días.
 
 ## Envío por correo en local (sin Vercel)
 
